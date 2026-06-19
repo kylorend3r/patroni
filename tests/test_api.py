@@ -426,7 +426,13 @@ class TestRestApiHandler(unittest.TestCase):
 
     @patch.object(MockPatroni, 'dcs')
     def test_do_GET_metrics(self, mock_dcs):
-        self.assertIsNotNone(MockRestApiServer(RestApiHandler, 'GET /metrics'))
+        with patch.object(RestApiHandler, 'write_response') as mock_write:
+            MockRestApiServer(RestApiHandler, 'GET /metrics')
+            body = mock_write.call_args[0][1]
+            self.assertIn('# TYPE patroni_xlog_location gauge', body)
+            self.assertIn('# TYPE patroni_xlog_received_location gauge', body)
+            self.assertIn('# TYPE patroni_xlog_replayed_location gauge', body)
+            self.assertIn('# TYPE patroni_postgres_timeline gauge', body)
         # Test with failsafe_mode enabled
         with patch.object(MockHa, 'is_failsafe_mode', Mock(return_value=True)):
             self.assertIsNotNone(MockRestApiServer(RestApiHandler, 'GET /metrics'))
